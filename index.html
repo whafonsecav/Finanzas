@@ -4,46 +4,58 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Plan Finanzas</title>
-  <meta name="description" content="Plan financiero personal mes a mes (datos cifrados).">
-  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Tu plan financiero mes a mes, privado y cifrado.">
+  <meta name="theme-color" content="#0b3b47">
   <meta name="robots" content="noindex, nofollow">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Finanzas">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
-  <header class="top">
+  <header class="top" id="top" hidden>
     <div class="brand">
-      <img src="icons/icon-192.png" alt="" width="28" height="28">
+      <img src="icons/icon-192.png" alt="" width="34" height="34">
       <div>
         <div class="brand-title">Plan Finanzas</div>
         <div class="brand-sub" id="sub">—</div>
       </div>
     </div>
-    <button class="bell" id="bell" aria-label="Pendientes"><span aria-hidden="true">🔔</span><span class="count" id="bellCount" hidden>0</span></button>
+    <button class="bell" id="bell" aria-label="Pendientes"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg><span class="count" id="bellCount" hidden>0</span></button>
   </header>
 
   <main id="view" tabindex="-1">
-    <section class="center">
-      <p class="muted">Cargando…</p>
+    <!-- Esta pantalla se ve aunque el navegador no ejecute el código -->
+    <section class="welcome" id="fallback">
+      <div class="welcome-art" aria-hidden="true">🔐</div>
+      <h1>Plan Finanzas</h1>
+      <p>Tu plan financiero está cifrado. Para abrirlo en el celular:</p>
+      <ol>
+        <li>En tu computador abre la carpeta <b>Finanzas Personales › app-privado</b> y haz doble clic en <b>abrir-app</b>.</li>
+        <li>Se abre esta app en el computador con un <b>código QR grande</b>.</li>
+        <li>Apunta la cámara del celular al QR y toca el enlace. ¡Listo!</li>
+      </ol>
+      <p class="hint">Si ves solo este texto, abre el enlace en Chrome (Android) o Safari (iPhone), no dentro de WhatsApp o Gmail.</p>
     </section>
   </main>
 
   <nav class="tabs" id="tabs" hidden>
-    <button data-tab="hoy" class="on"><span>🏠</span>Hoy</button>
-    <button data-tab="mes"><span>🗓️</span>Mes</button>
-    <button data-tab="deudas"><span>💳</span>Deudas</button>
-    <button data-tab="metas"><span>💍</span>Metas</button>
-    <button data-tab="gastos"><span>🧾</span>Gastos</button>
-    <button data-tab="mas"><span>☰</span>Más</button>
+    <button data-tab="hoy" class="on"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Hoy</span></button>
+    <button data-tab="mes"><svg viewBox="0 0 24 24"><path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zm-2 7h14v10H5z"/></svg><span>Mes</span></button>
+    <button data-tab="deudas"><svg viewBox="0 0 24 24"><path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm2 2v2h16V8zm0 6v4h16v-4z"/></svg><span>Deudas</span></button>
+    <button data-tab="metas"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 4a6 6 0 1 1-6 6 6 6 0 0 1 6-6Zm0 3a3 3 0 1 0 3 3 3 3 0 0 0-3-3Z"/></svg><span>Metas</span></button>
+    <button data-tab="gastos"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zm3 5v2h6V7zm0 4v2h6v-2z"/></svg><span>Gastos</span></button>
+    <button data-tab="mas"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg><span>Más</span></button>
+    <i class="tab-ind" id="tabInd" aria-hidden="true"></i>
   </nav>
 
+  <div class="modal" id="modal" hidden></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="qr.js"></script>
-  <script src="app.js"></script>
+  <script src="qr.js?v=2"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

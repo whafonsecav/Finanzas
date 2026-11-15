@@ -14,7 +14,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Finanzas">
-  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
   <header class="top" id="top" hidden>
@@ -35,7 +35,7 @@
       <h1>Plan Finanzas</h1>
       <p>Tu plan financiero está cifrado. Para abrirlo en el celular:</p>
       <ol>
-        <li>En tu computador abre la carpeta <b>Finanzas Personales › app-privado</b> y haz doble clic en <b>abrir-app</b>.</li>
+        <li>Abre la app en tu computador (o pídele a Claude que te la abra).</li>
         <li>Se abre esta app en el computador con un <b>código QR grande</b>.</li>
         <li>Apunta la cámara del celular al QR y toca el enlace. ¡Listo!</li>
       </ol>
@@ -46,16 +46,16 @@
   <nav class="tabs" id="tabs" hidden>
     <button data-tab="hoy" class="on"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Hoy</span></button>
     <button data-tab="mes"><svg viewBox="0 0 24 24"><path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zm-2 7h14v10H5z"/></svg><span>Mes</span></button>
-    <button data-tab="deudas"><svg viewBox="0 0 24 24"><path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm2 2v2h16V8zm0 6v4h16v-4z"/></svg><span>Deudas</span></button>
+    <button data-tab="avance"><svg viewBox="0 0 24 24"><path d="M4 20V10h3v10zm6.5 0V4h3v16zM17 20v-7h3v7z"/></svg><span>Avance</span></button>
     <button data-tab="metas"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 4a6 6 0 1 1-6 6 6 6 0 0 1 6-6Zm0 3a3 3 0 1 0 3 3 3 3 0 0 0-3-3Z"/></svg><span>Metas</span></button>
-    <button data-tab="gastos"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zm3 5v2h6V7zm0 4v2h6v-2z"/></svg><span>Gastos</span></button>
+    <button data-tab="gastos"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zm3 5v2h6V7zm0 4v2h6v-2z"/></svg><span>Efectivo</span></button>
     <button data-tab="mas"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg><span>Más</span></button>
     <i class="tab-ind" id="tabInd" aria-hidden="true"></i>
   </nav>
 
   <div class="modal" id="modal" hidden></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="qr.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="qr.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 /* Plan Finanzas v2 — PWA sin servidor. Datos cifrados (AES-256-GCM) que solo se descifran en tu dispositivo.
    El progreso (checks, gastos, saldos reales) vive en este dispositivo y se puede exportar. */
 'use strict';
-var APP_VERSION = '2.0.0';
+var APP_VERSION = '2.1.0';
 var KEY_LS = 'fin_key', STATE_LS = 'fin_state';
 function $(s) { return document.querySelector(s); }
 var view = $('#view');
@@ -91,12 +91,21 @@ function renderLock(msg) {
     '<li><b>En tu computador aparece esta app con un código QR grande.</b><span class="small muted">Si ya la abriste allá, entra a Más → Vincular celular.</span></li>' +
     '<li><b>Abre la cámara del celular y apunta al QR.</b><span class="small muted">No hace falta instalar nada.</span></li>' +
     '<li><b>Toca el enlace que aparece. ¡Entraste!</b><span class="small muted">El celular recuerda la clave para siempre.</span></li>' +
-    '<li><b>Agrégala a tu pantalla de inicio</b><span class="small muted">Android: menú ⋮ → Instalar app. iPhone: Compartir → Agregar a inicio.</span></li></ol></div>' +
+    '<li><b>Agrégala a tu pantalla de inicio</b><span class="small muted">Android: menú ⋮ → Instalar app. iPhone: “Copiar llave”, luego Compartir → Agregar a inicio, y en el ícono “Pegar llave copiada”.</span></li></ol></div>' +
     '<div class="card"><h2><span class="tt"><span class="ic">🔑</span>¿Tienes la clave copiada?</span></h2>' +
     '<p class="small muted">Pega aquí la clave o el enlace completo que empieza por https://…#k=</p>' +
     '<div class="keybox"><input id="k" class="i" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Pega aquí la clave"></div>' +
-    '<button class="btn block" style="margin-top:.7rem" id="kb">Abrir mi plan</button></div></div>';
+    '<button class="btn block" style="margin-top:.7rem" id="kb">Abrir mi plan</button>' +
+    '<button class="btn ghost block" style="margin-top:.5rem" id="kp">Pegar llave copiada</button></div></div>';
   stagger();
+  $('#kp').onclick = function () {
+    if (!(navigator.clipboard && navigator.clipboard.readText)) return toast('Mantén presionado el cuadro y elige Pegar');
+    navigator.clipboard.readText().then(function (t) {
+      $('#k').value = (t || '').trim();
+      try { navigator.clipboard.writeText(''); } catch (e) { }   // la llave no se queda en el portapapeles
+      $('#kb').click();
+    }).catch(function () { toast('Mantén presionado el cuadro y elige Pegar'); });
+  };
   $('#kb').onclick = function () {
     var v = $('#k').value.trim(); var mm = v.match(/k=([A-Za-z0-9_-]{40,})/); if (mm) v = mm[1];
     if (!/^[A-Za-z0-9_-]{40,}$/.test(v)) return toast('Esa clave no tiene el formato correcto');
@@ -108,11 +117,18 @@ function showInstallHelp() {
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
   if (standalone) return toast('¡Listo! Ya estás dentro 🎉');
   openModal('<div class="center" style="padding:.4rem 0"><div style="font-size:3rem">🎉</div><h2>¡Entraste!</h2><p class="muted">Deja la app como ícono en tu celular para abrirla con un toque.</p></div>' +
-    '<ol class="steps">' + (ios ? '<li><b>Toca Compartir</b><span class="small muted">El cuadrado con la flecha, abajo en Safari.</span></li><li><b>“Agregar a inicio”</b></li><li><b>Listo: aparece el ícono de Finanzas</b></li>'
+    '<ol class="steps">' + (ios ? '<li><b>Toca “Copiar llave” (abajo)</b><span class="small muted">En iPhone el ícono no comparte memoria con Safari: la pegas una sola vez.</span></li><li><b>Toca Compartir</b><span class="small muted">El cuadrado con la flecha, abajo en Safari.</span></li><li><b>“Agregar a inicio”</b></li><li><b>Abre el ícono de Finanzas y toca “Pegar llave copiada”</b><span class="small muted">Queda guardada para siempre en el ícono.</span></li>'
       : '<li><b>Toca el menú ⋮ arriba a la derecha</b></li><li><b>“Instalar app” o “Agregar a pantalla principal”</b></li><li><b>Listo: aparece el ícono de Finanzas</b></li>') + '</ol>' +
+    (ios ? '<button class="btn block" id="cpk">Copiar llave</button>' : '') +
     (DEFERRED_INSTALL ? '<button class="btn block" id="inst">Instalar ahora</button>' : '') +
     '<button class="btn ghost block" style="margin-top:.5rem" id="mclose">Entendido</button>');
   var ib = $('#inst'); if (ib) ib.onclick = function () { DEFERRED_INSTALL.prompt(); closeModal(); };
+  var ck = $('#cpk'); if (ck) ck.onclick = function () {
+    var link = location.origin + location.pathname + '#k=' + KEY;
+    (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(link) : Promise.reject())
+      .then(function () { toast('Llave copiada. Ahora: Compartir → Agregar a inicio'); })
+      .catch(function () { window.prompt('Copia este enlace (es tu llave, no lo compartas):', link); });
+  };
 }
 function openModal(html) { var m = $('#modal'); m.innerHTML = '<div class="box">' + html + '</div>'; m.hidden = false; m.onclick = function (e) { if (e.target === m || e.target.id === 'mclose') closeModal(); }; }
 function closeModal() { $('#modal').hidden = true; $('#modal').innerHTML = ''; }

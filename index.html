@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Plan Finanzas</title>
+  <meta name="description" content="Plan financiero personal mes a mes (datos cifrados).">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Finanzas">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="" width="28" height="28">
+      <div>
+        <div class="brand-title">Plan Finanzas</div>
+        <div class="brand-sub" id="sub">—</div>
+      </div>
+    </div>
+    <button class="bell" id="bell" aria-label="Pendientes"><span aria-hidden="true">🔔</span><span class="count" id="bellCount" hidden>0</span></button>
+  </header>
+
+  <main id="view" tabindex="-1">
+    <section class="center">
+      <p class="muted">Cargando…</p>
+    </section>
+  </main>
+
+  <nav class="tabs" id="tabs" hidden>
+    <button data-tab="hoy" class="on"><span>🏠</span>Hoy</button>
+    <button data-tab="mes"><span>🗓️</span>Mes</button>
+    <button data-tab="deudas"><span>💳</span>Deudas</button>
+    <button data-tab="metas"><span>💍</span>Metas</button>
+    <button data-tab="gastos"><span>🧾</span>Gastos</button>
+    <button data-tab="mas"><span>☰</span>Más</button>
+  </nav>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="qr.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

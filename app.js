@@ -1,7 +1,7 @@
 /* Plan Finanzas v2 — PWA sin servidor. Datos cifrados (AES-256-GCM) que solo se descifran en tu dispositivo.
    El progreso (checks, gastos, saldos reales) vive en este dispositivo y se puede exportar. */
 'use strict';
-var APP_VERSION = '3.5.0';
+var APP_VERSION = '3.5.1';
 var KEY_LS = 'fin_key', STATE_LS = 'fin_state';
 function $(s) { return document.querySelector(s); }
 var view = $('#view');
@@ -465,6 +465,14 @@ function diaHTML(f, guia) {
       return '<li><b>' + esc(t.titulo) + '</b>' + (t.monto ? ' — <b>' + money(t.monto) + '</b>' : '') + ((t.desde || t.hacia) ? '<br><span class="small muted">' + (t.desde ? 'Desde ' + esc(t.desde) : '') + (t.hacia ? ' → a ' + esc(t.hacia) : '') + '</span>' : '') +
         (t.guia ? '<br><button class="ac-guia" data-g2="' + t.guia + '" style="margin-top:.35rem">📘 Cómo se hace</button>' : '') + '</li>'; }).join('') + '</ol>' : '<p>Ese día no tienes pagos: es un hito del plan.</p>') +
     (sale ? '<p><b>Total que pagas o mueves: ' + money(sale) + '</b></p>' : '') + '</div>';
+  var DEU = [['Visa Clásica', 'vc', 'la Visa Clásica'], ['Visa Infinite', 'vi', 'la Visa Infinite'], ['', 'occ', 'el crédito']]; function esDe(t, d) { return d[1] === 'occ' ? (t.guia === 'cuota_occ' || t.guia === 'ataque') : t.titulo.indexOf(d[0]) >= 0; }
+  DEU.forEach(function (d) {
+    if (!ts.some(function (t) { return esDe(t, d); })) return;
+    var fut = allTasks().filter(function (t) { return t.fecha > f && esDe(t, d) && t.monto; }).sort(byFecha).slice(0, 10);
+    var z = PLAN.meses.filter(function (x) { return x.id >= f.slice(0, 7) && (x.saldosFin || {})[d[1]] != null && x.saldosFin[d[1]] <= 0; })[0];
+    if (fut.length) h += '<div class="g-sec"><div class="g-h">📆 Próximos pagos a ' + esc(d[2]) + (z ? ' (queda en $0 en ' + monthName(z.id).toLowerCase() + ')' : '') + '</div><ol class="g-pasos">' +
+      fut.map(function (t) { return '<li><b>' + cap(fDate(t.fecha)) + ' ' + t.fecha.slice(0, 4) + '</b>: ' + esc(t.titulo) + ' — <b>' + money(t.monto) + '</b></li>'; }).join('') + '</ol></div>';
+  });
   if (m && m.saldosFin) h += '<div class="g-sec"><div class="g-h">📊 Así terminas ' + monthName(m.id).toLowerCase() + '</div><ul class="g-ojo">' + (PLAN.deudas || []).map(function (d) { return '<li>' + esc(d.corto || d.nombre) + ': ' + money(m.saldosFin[d.id] || 0) + '</li>'; }).join('') + '<li><b>Deuda total: ' + money(sum(m.saldosFin)) + '</b></li></ul></div>';
   if (guia) h += '<button class="ac-guia" data-g2="' + guia + '">📖 Entender más sobre este paso</button>';
   return h + '<button class="btn block" id="mclose" style="margin-top:.9rem">Entendido</button></div>';

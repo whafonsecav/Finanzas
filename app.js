@@ -1,7 +1,7 @@
 /* Plan Finanzas v2 — PWA sin servidor. Datos cifrados (AES-256-GCM) que solo se descifran en tu dispositivo.
    El progreso (checks, gastos, saldos reales) vive en este dispositivo y se puede exportar. */
 'use strict';
-var APP_VERSION = '3.2.0';
+var APP_VERSION = '3.3.0';
 var KEY_LS = 'fin_key', STATE_LS = 'fin_state';
 function $(s) { return document.querySelector(s); }
 var view = $('#view');
@@ -255,6 +255,7 @@ function bindCommon() {
   Array.prototype.forEach.call(view.querySelectorAll('[data-meta]'), function (b) { b.onclick = function () { META_SEL = b.dataset.meta; if (TAB !== 'metas') go('metas'); else { render(); var d = $('#metaDet'); if (d) d.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }; });
   Array.prototype.forEach.call(view.querySelectorAll('[data-go]'), function (b) { b.onclick = function () { go(b.dataset.go); }; });
   Array.prototype.forEach.call(view.querySelectorAll('[data-act]'), function (b) { b.onclick = function () { ACT[b.dataset.act](b); }; });
+  Array.prototype.forEach.call(view.querySelectorAll('[data-guia]'), function (b) { b.onclick = function (e) { e.stopPropagation(); abrirGuia(b.dataset.guia); }; b.onkeydown = function (e) { if (e.key === 'Enter') abrirGuia(b.dataset.guia); }; });
   Array.prototype.forEach.call(view.querySelectorAll('[data-done]'), function (b) { b.onclick = function () { toggleDone(b.dataset.done, b); }; });
   Array.prototype.forEach.call(view.querySelectorAll('[data-mnav]'), function (b) { b.onclick = function () { var ids = PLAN.meses.map(function (x) { return x.id; }), i = ids.indexOf(MES_SEL) + Number(b.dataset.mnav); if (i >= 0 && i < ids.length) { MES_SEL = ids[i]; vMes._scrolled = false; render(); window.scrollTo(0, 0); } }; });
   Array.prototype.forEach.call(view.querySelectorAll('[data-mf]'), function (b) { b.onclick = function () { MES_FILTRO = b.dataset.mf; render(); }; });
@@ -277,7 +278,8 @@ function cardHTML(t, opts) {
     '<div class="ac-t">' + esc(t.titulo) + '</div>' +
     (t.monto ? '<div class="ac-amt num">' + money(t.monto) + '</div>' : '') + ruta +
     (late ? '<div class="ac-nag">' + esc(nagText(t, daysBetween(t.fecha, h))) + '</div>' : '') +
-    (t.detalle ? '<details class="ac-how"><summary>¿Cómo lo hago?</summary><p>' + esc(t.detalle) + '</p></details>' : '') +
+    (t.detalle ? '<details class="ac-how"><summary>Detalle</summary><p>' + esc(t.detalle) + '</p></details>' : '') +
+    (t.guia ? '<button class="ac-guia" data-guia="' + t.guia + '">📘 Cómo se hace, paso a paso</button>' : '') +
     '<button class="ac-btn" data-done="' + esc(t.id) + '">' + (done ? '✓ Hecho · deshacer' : 'Ya lo hice ✔') + '</button></article>';
 }
 function filaHTML(t) {
@@ -405,7 +407,7 @@ function linkify(c) {
   return esc(s);
 }
 function tablaHTML(tb) {
-  return '<div class="card"><h2><span class="tt">' + esc(tb.titulo) + '</span></h2>' + (tb.nota ? '<p class="small muted">' + esc(tb.nota) + '</p>' : '') + '<div class="scroll"><table><tr>' +
+  return '<div class="card"><h2><span class="tt">' + esc(tb.titulo) + '</span></h2>' + (tb.intro ? '<p class="tb-intro">' + esc(tb.intro) + '</p>' : '') + (tb.nota ? '<p class="tb-nota">💡 ' + esc(tb.nota) + '</p>' : '') + '<div class="scroll"><table><tr>' +
     tb.cols.map(function (c, i) { return '<th class="' + (tb.num && tb.num.indexOf(i) >= 0 ? 'n' : '') + '">' + esc(c) + '</th>'; }).join('') + '</tr>' +
     tb.filas.map(function (r) { var cells = r.c || r; return '<tr class="' + (r._tot ? 'tot' : '') + '">' + cells.map(function (c, i) { var isN = tb.num && tb.num.indexOf(i) >= 0; return '<td class="' + (isN ? 'n' : '') + '">' + (isN && typeof c === 'number' ? money(c) : linkify(c)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div></div>';
 }
@@ -417,7 +419,8 @@ function vMetas() {
   var m = metas.filter(function (x) { return x.id === META_SEL; })[0] || metas[0];
   html += '<section class="hero" id="metaDet"><div class="stat">' + (m.icono || '') + ' Meta</div><div class="big">' + esc(m.nombre) + '</div>' +
     (m.fecha ? '<span class="chip">📅 ' + fDateLong(m.fecha) + '</span>' : '') + (m.objetivo ? '<span class="chip">🎯 ' + money(m.objetivo) + '</span>' : '') + '</section>';
-  if (m.resumen) html += '<div class="card"><p style="margin:0">' + esc(m.resumen) + '</p></div>';
+  var GM = { viaje: 'sf', boda: 'boda', luna: 'cancun', deudas: 'deudas', u: 'cesantias', vivienda: 'apto', papas: 'papas', planb: 'control_b' };
+  if (m.resumen) html += '<div class="card"><p style="margin:0">' + esc(m.resumen) + '</p>' + (GM[m.id] && (PLAN.guias || {})[GM[m.id]] ? '<button class="ac-guia" data-guia="' + GM[m.id] + '">📘 Cómo funciona, paso a paso</button>' : '') + '</div>';
   if (m.proyeccion && m.proyeccion.length) html += '<div class="card"><h2><span class="tt"><span class="ic">📈</span>' + (m.id === 'deudas' ? 'Cómo baja' : 'Cómo crece') + '</span></h2>' + areaChart(m.proyeccion.map(function (p) { return { k: p.mes, v: p.saldo }; }), [], { label: m.nombre }) + '</div>';
   (m.tablas || []).forEach(function (tb) { html += tablaHTML(tb); });
   (m.listas || []).forEach(function (l) { html += '<div class="card"><h2><span class="tt">' + esc(l.titulo) + '</span></h2><ul class="list-plain">' + l.items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></div>'; });
@@ -425,6 +428,20 @@ function vMetas() {
   if (ts.length && m.id !== 'deudas') html += '<div class="card"><h2><span class="tt"><span class="ic">✅</span>Pasos de esta meta</span><span class="pill">' + ts.filter(function (t) { return isDone(t.id); }).length + '/' + ts.length + '</span></h2>' + ts.map(function (t) { return taskHTML(t); }).join('') + '</div>';
   return html;
 }
+
+/* ---------- Guías paso a paso ---------- */
+function guiaHTML(key) {
+  var g = (PLAN.guias || {})[key]; if (!g) return '<p>Sin guía.</p><button class="btn block" id="mclose">Cerrar</button>';
+  function sec(ic, t, body) { return body ? '<div class="g-sec"><div class="g-h">' + ic + ' ' + t + '</div>' + body + '</div>' : ''; }
+  return '<div class="guia"><div class="g-tag">📘 Guía paso a paso</div><h2>' + esc(g.titulo) + '</h2><p class="g-que">' + esc(g.que) + '</p>' +
+    sec('🪜', 'Cómo se hace', '<ol class="g-pasos">' + (g.pasos || []).map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ol>') +
+    sec('🙋', '¿Quién lo hace?', '<p>' + esc(g.quien) + '</p>') +
+    sec('💸', '¿Cuesta algo o te descuentan algo?', '<p>' + esc(g.costo) + '</p>') +
+    sec('🔁', '¿De dónde sale o a dónde llega la plata?', '<p>' + esc(g.plata) + '</p>') +
+    ((g.ojo || []).length ? sec('⚠️', 'Ojo', '<ul class="g-ojo">' + g.ojo.map(function (o) { return '<li>' + esc(o) + '</li>'; }).join('') + '</ul>') : '') +
+    '<button class="btn block" id="mclose" style="margin-top:.9rem">Entendido</button></div>';
+}
+function abrirGuia(key) { openModal(guiaHTML(key)); var b = document.querySelector('#modal .box'); if (b) b.scrollTop = 0; }
 
 /* ---------- Ruta: la línea de tiempo completa ---------- */
 function primerCero(id) { var m = PLAN.meses.filter(function (x) { return (x.saldosFin || {})[id] != null && x.saldosFin[id] <= 0; })[0]; return m ? m.id : null; }
@@ -440,11 +457,11 @@ function vRuta() {
     return '<div style="margin:.6rem 0"><div class="row small"><span><b>' + esc(dd.corto || dd.nombre) + '</b> · ' + (dd.tasaEA ? String(dd.tasaEA).replace('.', ',') + ' % E.A.' : '') + '</span><span class="num">' + money(vh) + '</span></div>' +
       bar(p, 'ok') + '<div class="tiny muted">En $0: <b>' + (z ? monthName(z) : '—') + '</b></div></div>'; }).join('') + '</div>';
   var R = PLAN.ruta || [], idx = R.findIndex(function (x) { return x.fecha >= h; }); if (idx < 0) idx = R.length;
-  html += '<div class="card"><h2><span class="tt"><span class="ic">🧭</span>Tu ruta completa, paso a paso</span></h2><div class="tl">' + R.map(function (x, i) {
+  html += '<div class="card"><h2><span class="tt"><span class="ic">🧭</span>Tu ruta completa, paso a paso</span></h2><p class="tb-intro">Toca cualquier punto para ver cómo se hace: pasos, quién lo hace, si cuesta algo y a dónde llega la plata.</p><div class="tl">' + R.map(function (x, i) {
     var cls = 'tl-i t-' + x.tipo + (i < idx ? ' past' : i === idx ? ' next' : '');
     var chips = (x.deuda != null ? '<span>💳 Deuda: ' + moneyK(x.deuda) + '</span>' : '') + (x.fna != null ? '<span>🏦 Cesantías: ' + moneyK(x.fna) + '</span>' : '');
-    return (i === idx ? '<div class="tl-here">📍 Estás aquí</div>' : '') + '<div class="' + cls + '"><div class="tl-dot">' + (i < idx ? '✓' : x.icono) + '</div><div class="tl-f">' + cap(fDate(x.fecha)) + ' ' + x.fecha.slice(0, 4) + (i === idx ? ' · PRÓXIMO' : '') + '</div>' +
-      '<div class="tl-t">' + esc(x.titulo) + '</div><div class="tl-d">' + esc(x.detalle) + '</div>' + (chips ? '<div class="tl-chips">' + chips + '</div>' : '') + '</div>'; }).join('') + '</div></div>';
+    return (i === idx ? '<div class="tl-here">📍 Estás aquí</div>' : '') + '<div class="' + cls + (x.guia ? ' tl-click' : '') + '"' + (x.guia ? ' data-guia="' + x.guia + '" role="button" tabindex="0"' : '') + '><div class="tl-dot">' + (i < idx ? '✓' : x.icono) + '</div><div class="tl-f">' + cap(fDate(x.fecha)) + ' ' + x.fecha.slice(0, 4) + (i === idx ? ' · PRÓXIMO' : '') + '</div>' +
+      '<div class="tl-t">' + esc(x.titulo) + '</div><div class="tl-d">' + esc(x.detalle) + '</div>' + (chips ? '<div class="tl-chips">' + chips + '</div>' : '') + (x.guia ? '<div class="tl-ver">Ver cómo se hace →</div>' : '') + '</div>'; }).join('') + '</div></div>';
   (PLAN.palancas || []).forEach(function (tb) { html += tablaHTML(tb); });
   if (PLAN.refi) html += tablaHTML(PLAN.refi);
   if (PLAN.tasas) html += tablaHTML(PLAN.tasas);

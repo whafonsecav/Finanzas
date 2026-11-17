@@ -1,7 +1,7 @@
 /* Plan Finanzas v2 — PWA sin servidor. Datos cifrados (AES-256-GCM) que solo se descifran en tu dispositivo.
    El progreso (checks, gastos, saldos reales) vive en este dispositivo y se puede exportar. */
 'use strict';
-var APP_VERSION = '3.0.0';
+var APP_VERSION = '3.1.0';
 var KEY_LS = 'fin_key', STATE_LS = 'fin_state';
 function $(s) { return document.querySelector(s); }
 var view = $('#view');
@@ -301,6 +301,7 @@ function vHoy() {
     (n ? 'Hoy tienes ' + n + ' cosa' + (n > 1 ? 's' : '') + ' por hacer' : 'Hoy estás al día 🙌') + '</h1><div class="small" style="opacity:.92">' +
     (od.length ? '⚠️ ' + od.length + ' atrasada' + (od.length > 1 ? 's' : '') + '. ' : '') + (hoy.length ? (hoy.length - pend.length) + ' de ' + hoy.length + ' de hoy ya hechas.' : 'No hay nada programado para hoy.') + '</div>' +
     entra.map(function (i) { return '<span class="chip">💰 Hoy entra: ' + esc(i.concepto) + ' ' + money(i.monto) + '</span>'; }).join('') + '</section>';
+  html += alarmBanner();
   if (od.length) html += '<h2 class="sec bad-t">⚠️ Atrasado: hazlo primero</h2>' + od.map(function (t) { return cardHTML(t); }).join('');
   if (hoy.length) html += '<h2 class="sec">📌 Hoy</h2>' + hoy.map(function (t) { return cardHTML(t, { fecha: false }); }).join('');
   else if (!od.length) html += '<div class="alert ok"><div class="ai">🙌</div><div><b>Hoy no tienes que pagar ni hacer nada</b>Si gastas en efectivo, anótalo.<div class="act"><button class="btn small" data-go="gastos">Anotar efectivo</button></div></div></div>';
@@ -349,17 +350,6 @@ function vMes() {
   return html;
 }
 
-/* ---------- Avance: cómo vas ---------- */
-function vAvance() {
-  var h = todayStr(), d = new Date(), mm = mesActual(), real = latestRealDebt(), ini = deudaInicial(), now = real ? real.total : sum(mm.saldosIni), pag = ini ? Math.max(0, 1 - now / ini) : 0, F = PLAN.fechas || {};
-  var faltan = F.libreDeudas ? Math.max(0, (Number(F.libreDeudas.slice(0, 4)) - d.getFullYear()) * 12 + Number(F.libreDeudas.slice(5)) - (d.getMonth() + 1)) : 0;
-  var html = '<div class="kpis">' +
-    '<div class="kpi"><div class="ico" style="background:var(--bad-soft)">💳</div><div class="lbl">Deuda total</div><div class="val">' + countEl(now, 'k') + '</div><div class="mini"><i data-w="' + (pag * 100).toFixed(1) + '"></i></div><div class="sub">' + Math.round(pag * 100) + ' % pagado de ' + moneyK(ini) + '</div></div>' +
-    '<div class="kpi"><div class="ico" style="background:var(--ok-soft)">🎉</div><div class="lbl">Libre de deudas</div><div class="val">' + (F.libreDeudas ? monthShort(F.libreDeudas) : '—') + '</div><div class="sub">faltan ' + faltan + ' meses si cumples</div></div>' +
-    (F.viaje && F.viaje >= h ? '<div class="kpi"><div class="ico" style="background:var(--info-soft)">🌉</div><div class="lbl">Pedida en San Francisco</div><div class="val">' + countEl(daysBetween(h, F.viaje), 'int') + ' días</div><div class="sub">' + fDate(F.viaje) + '</div></div>' : '') +
-    (F.boda ? '<div class="kpi"><div class="ico" style="background:var(--warn-soft)">💍</div><div class="lbl">Boda</div><div class="val">' + (F.boda >= h ? countEl(daysBetween(h, F.boda), 'int') + ' días' : '¡Casados!') + '</div><div class="sub">' + fDate(F.boda) + ' ' + F.boda.slice(0, 4) + '</div></div>' : '') + '</div>';
-  return html + roadmap() + vDeudas() + donutMes(mm);
-}
 
 function roadmap() {
   var hitos = PLAN.hitos || [], h = todayStr(); if (!hitos.length) return '';
@@ -434,6 +424,43 @@ function vMetas() {
   return html;
 }
 
+/* ---------- Ruta: la línea de tiempo completa ---------- */
+function primerCero(id) { var m = PLAN.meses.filter(function (x) { return (x.saldosFin || {})[id] != null && x.saldosFin[id] <= 0; })[0]; return m ? m.id : null; }
+function vRuta() {
+  var h = todayStr(), mm = mesActual(), real = latestRealDebt(), now = real ? real.total : sum(mm.saldosIni), F = PLAN.fechas || {}, d = new Date();
+  var faltan = F.libreDeudas ? Math.max(0, (Number(F.libreDeudas.slice(0, 4)) - d.getFullYear()) * 12 + Number(F.libreDeudas.slice(5)) - (d.getMonth() + 1)) : 0;
+  var html = '<section class="hero"><div class="stat">💳 Lo que debes hoy</div><div class="big">' + countEl(now, 'money') + '</div>' +
+    '<div class="small" style="opacity:.92">En $0 en <b>' + (F.libreDeudas ? monthName(F.libreDeudas) : '—') + '</b> si sigues el plan · faltan ' + faltan + ' meses</div>' +
+    '<span class="chip">✂️ Tarjetas en $0: ' + (F.tarjetasCero ? monthName(F.tarjetasCero) : '—') + '</span></section>';
+  var ini = PLAN.meses[0].saldosIni || {};
+  html += '<div class="card"><h2><span class="tt"><span class="ic">🎯</span>Cuándo queda en $0 cada deuda</span></h2>' + (PLAN.deudas || []).map(function (dd) {
+    var v0 = ini[dd.id] || 0, vh = (mm.saldosIni || {})[dd.id] || 0, z = primerCero(dd.id), p = v0 ? Math.max(0, 1 - vh / v0) * 100 : 100;
+    return '<div style="margin:.6rem 0"><div class="row small"><span><b>' + esc(dd.corto || dd.nombre) + '</b> · ' + (dd.tasaEA ? String(dd.tasaEA).replace('.', ',') + ' % E.A.' : '') + '</span><span class="num">' + money(vh) + '</span></div>' +
+      bar(p, 'ok') + '<div class="tiny muted">En $0: <b>' + (z ? monthName(z) : '—') + '</b></div></div>'; }).join('') + '</div>';
+  var R = PLAN.ruta || [], idx = R.findIndex(function (x) { return x.fecha >= h; }); if (idx < 0) idx = R.length;
+  html += '<div class="card"><h2><span class="tt"><span class="ic">🧭</span>Tu ruta completa, paso a paso</span></h2><div class="tl">' + R.map(function (x, i) {
+    var cls = 'tl-i t-' + x.tipo + (i < idx ? ' past' : i === idx ? ' next' : '');
+    var chips = (x.deuda != null ? '<span>💳 Deuda: ' + moneyK(x.deuda) + '</span>' : '') + (x.fna != null ? '<span>🏦 Cesantías: ' + moneyK(x.fna) + '</span>' : '');
+    return (i === idx ? '<div class="tl-here">📍 Estás aquí</div>' : '') + '<div class="' + cls + '"><div class="tl-dot">' + (i < idx ? '✓' : x.icono) + '</div><div class="tl-f">' + cap(fDate(x.fecha)) + ' ' + x.fecha.slice(0, 4) + (i === idx ? ' · PRÓXIMO' : '') + '</div>' +
+      '<div class="tl-t">' + esc(x.titulo) + '</div><div class="tl-d">' + esc(x.detalle) + '</div>' + (chips ? '<div class="tl-chips">' + chips + '</div>' : '') + '</div>'; }).join('') + '</div></div>';
+  if (PLAN.refi) html += tablaHTML(PLAN.refi);
+  html += '<details class="card"><summary><b>📈 Gráficas de deudas y del mes</b></summary>' + vDeudas() + donutMes(mm) + '</details>';
+  return html;
+}
+function vAvance() { return vRuta(); }
+
+/* ---------- Alarmas: ¿están al día? ---------- */
+function horario() { var s = ''; allTasks().forEach(function (t) { s += t.fecha + t.titulo + (t.monto || 0); }); (PLAN.ingresos || []).forEach(function (i) { s += i.fecha + i.monto; });
+  var hsh = 5381; for (var i = 0; i < s.length; i++) hsh = ((hsh << 5) + hsh + s.charCodeAt(i)) | 0; return String(hsh >>> 0); }
+function alarmBanner() {
+  var hs = horario(); if (STATE.icsHash === hs) return '';
+  var nuevo = !STATE.icsHash;
+  return '<div class="alert ' + (nuevo ? 'warn' : 'bad') + '"><div class="ai">⏰</div><div><b>' + (nuevo ? 'Activa tus alarmas diarias (una sola vez)' : 'El plan cambió: actualiza tus alarmas (2 minutos)') + '</b>' +
+    (nuevo ? 'En el computador: Más → Descargar alarmas → impórtalas en un calendario “Finanzas” de Google Calendar. Te sonará cada mañana y cada tarde lo que toca.'
+           : '1) calendar.google.com → ⚙️ → calendario “Finanzas” → Eliminar calendario. 2) Crea otro llamado “Finanzas”. 3) ⚙️ → Importar → el archivo nuevo → “Finanzas”.') +
+    '<div class="act"><button class="btn small" data-act="ics">Descargar alarmas</button> <button class="btn small ghost" data-act="icsOk">Ya las importé</button></div></div></div>';
+}
+
 /* ---------- Efectivo: lo que sacas del cajero vs. lo que gastas en efectivo ---------- */
 var GASTO_CAT = null, EF_MODO = 'gasto';
 function retirosMes(mes) { return (STATE.retiros || []).filter(function (r) { return r.fecha.slice(0, 7) === mes; }); }
@@ -465,13 +492,13 @@ function vGastos() {
 /* ---------- Más ---------- */
 function alarmCard(perm) {
   return '<div class="card"><h2><span class="tt"><span class="ic">⏰</span>Alarmas diarias: qué hacer hoy</span><span class="pill ' + (perm === 'granted' ? 'ok' : 'warn') + '">avisos ' + (perm === 'granted' ? 'activos' : 'apagados') + '</span></h2>' +
-    '<p class="small">Todos los días a las 7:00 a. m. tu calendario te dice exactamente qué hacer ese día. Si hay pagos, a las 8:00 p. m. te pregunta si ya los hiciste. Funciona aunque la app esté cerrada.</p>' +
+    '<p class="small">Todos los días a las 7:00 a. m. tu calendario te dice exactamente qué hacer ese día, y los días con tareas te lo recuerda a las 3:00 p. m. Funciona aunque la app esté cerrada. La app también te avisa cuando la abres.</p>' +
     '<ol class="steps"><li><b>Toca “Descargar alarmas” en el computador</b><span class="small muted">Se descarga el archivo finanzas-alarmas-diarias.ics.</span></li>' +
     '<li><b>En calendar.google.com crea un calendario “Finanzas”</b><span class="small muted">⚙️ Configuración → Agregar calendario → Crear calendario nuevo.</span></li>' +
     '<li><b>Importa el archivo en ese calendario</b><span class="small muted">⚙️ Configuración → Importar y exportar → elige el archivo y el calendario “Finanzas” → Importar.</span></li>' +
     '<li><b>En el celular deja activas las notificaciones de Google Calendar</b><span class="small muted">iPhone: también sirve abrir el archivo en Safari y tocar “Agregar todo”.</span></li></ol>' +
     '<div class="chip-row"><button class="btn small" data-act="ics">Descargar alarmas</button><button class="btn small ghost" data-act="notif">Activar avisos de la app</button><button class="btn small ghost" data-act="testNotif">Probar aviso</button></div>' +
-    '<p class="tiny muted">Cuando el plan cambie te aviso: borras el calendario “Finanzas”, lo creas de nuevo e importas el archivo nuevo.</p></div>';
+    '<p class="tiny muted">Si el plan cambia, la pestaña Hoy te muestra un aviso rojo con los 3 pasos para reemplazarlas (borrar el calendario “Finanzas”, crearlo de nuevo e importar el archivo nuevo). Cuando las importes toca “Ya las importé”.</p><button class="btn small ghost" data-act="icsOk">Ya las importé</button></div>';
 }
 function vMas() {
   var a = PLAN.analisis || {}, o = PLAN.optimo, perm = ('Notification' in window) ? Notification.permission : 'no';
@@ -530,6 +557,7 @@ var ACT = {
   },
   testNotif: function () { showNotif('Prueba de Plan Finanzas', 'Así te voy a regañar cuando no cumplas 😉'); },
   ics: function () { downloadICS(); },
+  icsOk: function () { STATE.icsHash = horario(); saveState(); toast('Listo: alarmas al día ✔'); render(); },
   install: function () { if (DEFERRED_INSTALL) { DEFERRED_INSTALL.prompt(); } else showInstallHelp(); },
   qr: function () {
     if (!window.QR) return toast('No se pudo generar el QR');
@@ -599,7 +627,7 @@ function downloadICS() {
         '\n\nCuando lo hagas, márcalo en la app (pestaña Hoy).';
       var t0 = ts[0], tit = '📌 Hoy: ' + t0.titulo + (t0.monto ? ' ' + moneyK(t0.monto) : '') + (ts.length > 1 ? ' (+' + (ts.length - 1) + ' más)' : '');
       ev('dia-' + f, f, 7, 0, 15, tit, desc, ['-PT0M']);
-      if (ts.some(function (t) { return t.critica || t.tipo === 'pago'; })) ev('noche-' + f, f, 20, 0, 10, '❓ ¿Ya hiciste lo de hoy? Márcalo en la app', desc, ['-PT0M']);
+      ev('tarde-' + f, f, 15, 0, 10, '⏰ Tarde: ¿ya hiciste lo de hoy? ' + t0.titulo + (ts.length > 1 ? ' (+' + (ts.length - 1) + ')' : ''), desc, ['-PT0M']);
     } else {
       ev('dia-' + f, f, 7, 0, 10, entra ? '💰 Hoy te entra plata: no pagas nada hoy' : '🙂 Hoy no pagas nada: anota el efectivo que gastes', (entra ? entra + '\n\n' : '') + 'No tienes pagos ni trámites hoy. Si gastas en efectivo, anótalo en la app (pestaña Efectivo).', ['-PT0M']);
     }

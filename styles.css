@@ -285,3 +285,18 @@ label.f { display: block; font-size: .78rem; color: var(--muted); margin: .55rem
 details.card > summary { cursor: pointer; }
 details.card[open] > summary { margin-bottom: .4rem; }
 select.i { appearance: auto; }
+
+/* ===== v3.1: ruta ===== */
+.tl { position: relative; padding-left: 2.1rem; margin-top: .4rem; }
+.tl::before { content: ''; position: absolute; left: .82rem; top: .4rem; bottom: .4rem; width: 3px; border-radius: 3px; background: linear-gradient(var(--brand), var(--brand2)); opacity: .35; }
+.tl-i { position: relative; margin: 0 0 1rem; }
+.tl-dot { position: absolute; left: -2.1rem; top: -.05rem; width: 1.9rem; height: 1.9rem; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 2px solid var(--line); font-size: .95rem; }
+.tl-i.past { opacity: .55; } .tl-i.past .tl-dot { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); font-weight: 900; }
+.tl-i.next .tl-dot { border-color: var(--brand2); box-shadow: 0 0 0 5px color-mix(in srgb, var(--brand2) 22%, transparent); }
+.tl-i.t-cesantias .tl-dot { border-color: var(--c3); } .tl-i.t-deuda .tl-dot { border-color: var(--c4); } .tl-i.t-vivienda .tl-dot { border-color: var(--brand); } .tl-i.t-control .tl-dot { border-color: var(--bad); }
+.tl-f { font-size: .72rem; font-weight: 800; color: var(--muted); letter-spacing: .03em; }
+.tl-i.next .tl-f { color: var(--brand2); }
+.tl-t { font-weight: 800; line-height: 1.3; margin: .12rem 0 .15rem; }
+.tl-d { font-size: .86rem; color: var(--muted); line-height: 1.4; }
+.tl-chips span { display: inline-block; font-size: .72rem; font-weight: 700; padding: .12rem .55rem; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); margin: .35rem .3rem 0 0; }
+.tl-here { margin: .1rem 0 .9rem -2.1rem; padding: .35rem .7rem; border-radius: 12px; background: var(--info-soft); color: var(--brand2); font-weight: 800; font-size: .85rem; }

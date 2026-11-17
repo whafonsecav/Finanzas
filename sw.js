@@ -1,6 +1,6 @@
 /* Service worker: funciona sin conexión y avisa de pendientes en segundo plano cuando el sistema lo permite. */
-const CACHE = 'fin-shell-v7';
-const SHELL = ['./', 'index.html', 'styles.css?v=7', 'app.js?v=7', 'qr.js?v=7', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
+const CACHE = 'fin-shell-v8';
+const SHELL = ['./', 'index.html', 'styles.css?v=8', 'app.js?v=8', 'qr.js?v=8', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {

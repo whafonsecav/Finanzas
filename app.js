@@ -1,7 +1,7 @@
 /* Plan Finanzas v2 — PWA sin servidor. Datos cifrados (AES-256-GCM) que solo se descifran en tu dispositivo.
    El progreso (checks, gastos, saldos reales) vive en este dispositivo y se puede exportar. */
 'use strict';
-var APP_VERSION = '3.3.0';
+var APP_VERSION = '3.4.0';
 var KEY_LS = 'fin_key', STATE_LS = 'fin_state';
 function $(s) { return document.querySelector(s); }
 var view = $('#view');
@@ -134,7 +134,11 @@ function openModal(html) { var m = $('#modal'); m.innerHTML = '<div class="box">
 function closeModal() { $('#modal').hidden = true; $('#modal').innerHTML = ''; }
 
 /* ---------- Utilidades del plan ---------- */
-function allTasks() { var out = []; PLAN.meses.forEach(function (m) { m.tareas.forEach(function (t) { var x = Object.assign({ mes: m.id }, t); out.push(x); }); }); return out; }
+function allTasks() { var out = []; PLAN.meses.forEach(function (m) { m.tareas.forEach(function (t) { var x = Object.assign({ mes: m.id }, t); out.push(x); }); }); return out.concat(tareasB()); }
+function tareasB() {
+  if (!STATE.modoB || !PLAN.modoB) return [];
+  return PLAN.modoB.map(function (d, i) { var f = addDays(STATE.modoB.fecha, d.dias); return { id: 'B-' + STATE.modoB.fecha + '-' + i, mes: f.slice(0, 7), grupo: 'otros', fecha: f, titulo: '🛟 ' + d.titulo, detalle: d.detalle, tipo: d.tipo, critica: d.critica, monto: 0, desde: '', hacia: '', metas: ['planb'], guia: 'modo_b' }; });
+}
 function isDone(id) { return !!STATE.checks[id]; }
 function overdue() { var h = todayStr(); return allTasks().filter(function (t) { return t.fecha < h && !isDone(t.id); }); }
 function dueRange(from, to) { return allTasks().filter(function (t) { return t.fecha >= from && t.fecha <= to && !isDone(t.id); }); }
@@ -304,6 +308,7 @@ function vHoy() {
     (od.length ? '⚠️ ' + od.length + ' atrasada' + (od.length > 1 ? 's' : '') + '. ' : '') + (hoy.length ? (hoy.length - pend.length) + ' de ' + hoy.length + ' de hoy ya hechas.' : 'No hay nada programado para hoy.') + '</div>' +
     entra.map(function (i) { return '<span class="chip">💰 Hoy entra: ' + esc(i.concepto) + ' ' + money(i.monto) + '</span>'; }).join('') + '</section>';
   html += alarmBanner();
+  if (STATE.modoB) html += '<div class="alert bad"><div class="ai">🛟</div><div><b>Plan B activo desde ' + fDateLong(STATE.modoB.fecha) + '</b>Tus tareas del plan B ya están en Hoy y en Mes (marcadas con 🛟). No abones extra al crédito y no uses tarjetas para vivir. Escríbeme para recalcular todo con tus números reales.<div class="act"><button class="btn small ghost" data-act="modoBOff">Ya tengo empleo: desactivar</button></div></div></div>';
   if (od.length) html += '<h2 class="sec bad-t">⚠️ Atrasado: hazlo primero</h2>' + od.map(function (t) { return cardHTML(t); }).join('');
   if (hoy.length) html += '<h2 class="sec">📌 Hoy</h2>' + hoy.map(function (t) { return cardHTML(t, { fecha: false }); }).join('');
   else if (!od.length) html += '<div class="alert ok"><div class="ai">🙌</div><div><b>Hoy no tienes que pagar ni hacer nada</b>Si gastas en efectivo, anótalo.<div class="act"><button class="btn small" data-go="gastos">Anotar efectivo</button></div></div></div>';
@@ -320,7 +325,7 @@ function vHoy() {
 var MES_FILTRO = 'pend';
 function vMes() {
   var idx = PLAN.meses.map(function (x) { return x.id; }).indexOf(MES_SEL); if (idx < 0) idx = 0;
-  var m = PLAN.meses[idx], h = todayStr(), ts = m.tareas.slice().sort(byFecha);
+  var m = PLAN.meses[idx], h = todayStr(), ts = m.tareas.concat(tareasB().filter(function (t) { return t.mes === m.id; })).sort(byFecha);
   var pend = ts.filter(function (t) { return !isDone(t.id); }), hechas = ts.length - pend.length;
   var lista = MES_FILTRO === 'pend' ? pend : ts, porMover = pend.reduce(function (a, t) { return a + (t.monto || 0); }, 0);
   var html = '<div class="mnav"><button data-mnav="-1" aria-label="Mes anterior"' + (idx ? '' : ' disabled') + '>‹</button><div class="mt"><b>' + monthName(m.id) + '</b><span>' + esc(m.etiqueta || '') + '</span></div>' +
@@ -328,7 +333,7 @@ function vMes() {
     '<div class="msum"><div><b>' + pend.length + '</b>pendientes</div><div><b>' + hechas + '</b>hechas</div><div><b class="num">' + moneyK(porMover) + '</b>por pagar o mover</div></div>' +
     '<div class="seg2"><button data-mf="pend" class="' + (MES_FILTRO === 'pend' ? 'on' : '') + '">Pendientes</button><button data-mf="todo" class="' + (MES_FILTRO === 'todo' ? 'on' : '') + '">Todo el mes</button></div>';
   if (m.foco) html += '<div class="alert info"><div class="ai">🎯</div><div><b>Lo importante de este mes</b>' + esc(m.foco) + '</div></div>';
-  var tope = (m.sobres || []).reduce(function (s, x) { return s + x.monto; }, 0), T = PLAN.tope || {};
+  var tope = (m.sobres || []).reduce(function (s, x) { return s + x.monto; }, 0) * (STATE.modoB && m.id >= STATE.modoB.fecha.slice(0, 7) ? 0.7 : 1), T = PLAN.tope || {};
   if (tope) html += '<div class="alert warn"><div class="ai">💸</div><div><b>Tope del día a día este mes: ' + money(tope) + '</b>Es todo lo variable: Nequi, efectivo, comidas, transporte, compras. Máximo absoluto ' + money(T.maximo || 1200000) + '; con más, el plan se rompe. En octubre gastaste ' + moneyK(T.real_oct || 0) + '.</div></div>';
   var dias = {}, orden = [];
   lista.forEach(function (t) { if (!dias[t.fecha]) { dias[t.fecha] = []; orden.push(t.fecha); } dias[t.fecha].push(t); });
@@ -419,6 +424,7 @@ function vMetas() {
   var m = metas.filter(function (x) { return x.id === META_SEL; })[0] || metas[0];
   html += '<section class="hero" id="metaDet"><div class="stat">' + (m.icono || '') + ' Meta</div><div class="big">' + esc(m.nombre) + '</div>' +
     (m.fecha ? '<span class="chip">📅 ' + fDateLong(m.fecha) + '</span>' : '') + (m.objetivo ? '<span class="chip">🎯 ' + money(m.objetivo) + '</span>' : '') + '</section>';
+  if (m.id === 'planb') html += planBCard();
   var GM = { viaje: 'sf', boda: 'boda', luna: 'cancun', deudas: 'deudas', u: 'cesantias', vivienda: 'apto', papas: 'papas', planb: 'control_b' };
   if (m.resumen) html += '<div class="card"><p style="margin:0">' + esc(m.resumen) + '</p>' + (GM[m.id] && (PLAN.guias || {})[GM[m.id]] ? '<button class="ac-guia" data-guia="' + GM[m.id] + '">📘 Cómo funciona, paso a paso</button>' : '') + '</div>';
   if (m.proyeccion && m.proyeccion.length) html += '<div class="card"><h2><span class="tt"><span class="ic">📈</span>' + (m.id === 'deudas' ? 'Cómo baja' : 'Cómo crece') + '</span></h2>' + areaChart(m.proyeccion.map(function (p) { return { k: p.mes, v: p.saldo }; }), [], { label: m.nombre }) + '</div>';
@@ -511,6 +517,11 @@ function vGastos() {
 
 
 /* ---------- Más ---------- */
+function planBCard() {
+  return '<div class="card"><h2><span class="tt"><span class="ic">🛟</span>Plan B: si te quedas sin empleo</span><span class="pill ' + (STATE.modoB ? 'bad' : '') + '">' + (STATE.modoB ? 'ACTIVO' : 'apagado') + '</span></h2>' +
+    '<p class="small">Si te despiden, actívalo con la fecha. La app te pone de inmediato las tareas del día 1, la semana 1 y el mes 1, baja el tope del día a día 30 % y te recuerda que no se firma el arriendo nuevo. Los escenarios calculados están en Metas → Plan B.</p>' +
+    (STATE.modoB ? '<button class="btn small ghost" data-act="modoBOff">Desactivar (ya tengo empleo)</button>' : '<button class="btn small danger" data-act="modoB">Activar plan B</button>') + '</div>';
+}
 function alarmCard(perm) {
   return '<div class="card"><h2><span class="tt"><span class="ic">⏰</span>Alarmas diarias: qué hacer hoy</span><span class="pill ' + (perm === 'granted' ? 'ok' : 'warn') + '">avisos ' + (perm === 'granted' ? 'activos' : 'apagados') + '</span></h2>' +
     '<p class="small">Todos los días a las 7:00 a. m. tu calendario te dice exactamente qué hacer ese día, y los días con tareas te lo recuerda a las 3:00 p. m. Funciona aunque la app esté cerrada. La app también te avisa cuando la abres.</p>' +
@@ -524,6 +535,7 @@ function alarmCard(perm) {
 function vMas() {
   var a = PLAN.analisis || {}, o = PLAN.optimo, perm = ('Notification' in window) ? Notification.permission : 'no';
   var html = alarmCard(perm);
+  html += planBCard();
   if (o) html += '<section class="hero"><div class="stat">🧠 Análisis de escenarios</div><div class="big">' + esc(o.titulo) + '</div><div class="small" style="opacity:.92;margin-top:.3rem">' + esc(o.resumen) + '</div></section>' +
     tablaHTML({ titulo: 'Comparación con el mismo modelo', cols: o.tabla.cols, filas: o.tabla.filas }) +
     '<div class="card"><h2><span class="tt"><span class="ic">✅</span>Las razones</span></h2><ul class="list-plain">' + o.puntos.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></div>';
@@ -578,6 +590,12 @@ var ACT = {
   },
   testNotif: function () { showNotif('Prueba de Plan Finanzas', 'Así te voy a regañar cuando no cumplas 😉'); },
   ics: function () { downloadICS(); },
+  modoB: function () {
+    openModal('<h2>🛟 Activar plan B</h2><p class="small">¿Desde qué día te quedaste sin empleo? Las tareas se programan desde esa fecha.</p><label class="f" for="fb">Fecha</label><input id="fb" class="i" type="date" value="' + todayStr() + '">' +
+      '<div class="chip-row" style="margin-top:.9rem"><button class="btn danger" id="okb">Activar</button><button class="btn ghost" id="mclose">Cancelar</button></div>');
+    $('#okb').onclick = function () { var f = $('#fb').value || todayStr(); STATE.modoB = { fecha: f, desde: new Date().toISOString() }; saveState(); closeModal(); toast('Plan B activo. Revisa la pestaña Hoy.'); go('hoy'); };
+  },
+  modoBOff: function () { if (confirm('¿Desactivar el plan B? Vuelves al plan normal.')) { delete STATE.modoB; saveState(); toast('Plan B desactivado'); render(); } },
   icsOk: function () { STATE.icsHash = horario(); saveState(); toast('Listo: alarmas al día ✔'); render(); },
   install: function () { if (DEFERRED_INSTALL) { DEFERRED_INSTALL.prompt(); } else showInstallHelp(); },
   qr: function () {

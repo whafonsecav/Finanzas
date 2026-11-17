@@ -1,7 +1,7 @@
 /* Plan Finanzas v2 — PWA sin servidor. Datos cifrados (AES-256-GCM) que solo se descifran en tu dispositivo.
    El progreso (checks, gastos, saldos reales) vive en este dispositivo y se puede exportar. */
 'use strict';
-var APP_VERSION = '3.1.0';
+var APP_VERSION = '3.2.0';
 var KEY_LS = 'fin_key', STATE_LS = 'fin_state';
 function $(s) { return document.querySelector(s); }
 var view = $('#view');
@@ -326,6 +326,8 @@ function vMes() {
     '<div class="msum"><div><b>' + pend.length + '</b>pendientes</div><div><b>' + hechas + '</b>hechas</div><div><b class="num">' + moneyK(porMover) + '</b>por pagar o mover</div></div>' +
     '<div class="seg2"><button data-mf="pend" class="' + (MES_FILTRO === 'pend' ? 'on' : '') + '">Pendientes</button><button data-mf="todo" class="' + (MES_FILTRO === 'todo' ? 'on' : '') + '">Todo el mes</button></div>';
   if (m.foco) html += '<div class="alert info"><div class="ai">🎯</div><div><b>Lo importante de este mes</b>' + esc(m.foco) + '</div></div>';
+  var tope = (m.sobres || []).reduce(function (s, x) { return s + x.monto; }, 0), T = PLAN.tope || {};
+  if (tope) html += '<div class="alert warn"><div class="ai">💸</div><div><b>Tope del día a día este mes: ' + money(tope) + '</b>Es todo lo variable: Nequi, efectivo, comidas, transporte, compras. Máximo absoluto ' + money(T.maximo || 1200000) + '; con más, el plan se rompe. En octubre gastaste ' + moneyK(T.real_oct || 0) + '.</div></div>';
   var dias = {}, orden = [];
   lista.forEach(function (t) { if (!dias[t.fecha]) { dias[t.fecha] = []; orden.push(t.fecha); } dias[t.fecha].push(t); });
   (m.ingresos || []).forEach(function (i) { if (!dias[i.fecha] && MES_FILTRO === 'todo') { dias[i.fecha] = []; orden.push(i.fecha); } });
@@ -443,7 +445,9 @@ function vRuta() {
     var chips = (x.deuda != null ? '<span>💳 Deuda: ' + moneyK(x.deuda) + '</span>' : '') + (x.fna != null ? '<span>🏦 Cesantías: ' + moneyK(x.fna) + '</span>' : '');
     return (i === idx ? '<div class="tl-here">📍 Estás aquí</div>' : '') + '<div class="' + cls + '"><div class="tl-dot">' + (i < idx ? '✓' : x.icono) + '</div><div class="tl-f">' + cap(fDate(x.fecha)) + ' ' + x.fecha.slice(0, 4) + (i === idx ? ' · PRÓXIMO' : '') + '</div>' +
       '<div class="tl-t">' + esc(x.titulo) + '</div><div class="tl-d">' + esc(x.detalle) + '</div>' + (chips ? '<div class="tl-chips">' + chips + '</div>' : '') + '</div>'; }).join('') + '</div></div>';
+  (PLAN.palancas || []).forEach(function (tb) { html += tablaHTML(tb); });
   if (PLAN.refi) html += tablaHTML(PLAN.refi);
+  if (PLAN.tasas) html += tablaHTML(PLAN.tasas);
   html += '<details class="card"><summary><b>📈 Gráficas de deudas y del mes</b></summary>' + vDeudas() + donutMes(mm) + '</details>';
   return html;
 }

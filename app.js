@@ -1,7 +1,7 @@
 /* Plan Finanzas v2 — PWA sin servidor. Datos cifrados (AES-256-GCM) que solo se descifran en tu dispositivo.
    El progreso (checks, gastos, saldos reales) vive en este dispositivo y se puede exportar. */
 'use strict';
-var APP_VERSION = '3.4.0';
+var APP_VERSION = '3.5.0';
 var KEY_LS = 'fin_key', STATE_LS = 'fin_state';
 function $(s) { return document.querySelector(s); }
 var view = $('#view');
@@ -259,6 +259,7 @@ function bindCommon() {
   Array.prototype.forEach.call(view.querySelectorAll('[data-meta]'), function (b) { b.onclick = function () { META_SEL = b.dataset.meta; if (TAB !== 'metas') go('metas'); else { render(); var d = $('#metaDet'); if (d) d.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }; });
   Array.prototype.forEach.call(view.querySelectorAll('[data-go]'), function (b) { b.onclick = function () { go(b.dataset.go); }; });
   Array.prototype.forEach.call(view.querySelectorAll('[data-act]'), function (b) { b.onclick = function () { ACT[b.dataset.act](b); }; });
+  Array.prototype.forEach.call(view.querySelectorAll('[data-rdia]'), function (b) { b.onclick = function () { abrirDia(b.dataset.rdia, b.dataset.rg); }; b.onkeydown = function (e) { if (e.key === 'Enter') abrirDia(b.dataset.rdia, b.dataset.rg); }; });
   Array.prototype.forEach.call(view.querySelectorAll('[data-guia]'), function (b) { b.onclick = function (e) { e.stopPropagation(); abrirGuia(b.dataset.guia); }; b.onkeydown = function (e) { if (e.key === 'Enter') abrirGuia(b.dataset.guia); }; });
   Array.prototype.forEach.call(view.querySelectorAll('[data-done]'), function (b) { b.onclick = function () { toggleDone(b.dataset.done, b); }; });
   Array.prototype.forEach.call(view.querySelectorAll('[data-mnav]'), function (b) { b.onclick = function () { var ids = PLAN.meses.map(function (x) { return x.id; }), i = ids.indexOf(MES_SEL) + Number(b.dataset.mnav); if (i >= 0 && i < ids.length) { MES_SEL = ids[i]; vMes._scrolled = false; render(); window.scrollTo(0, 0); } }; });
@@ -444,10 +445,34 @@ function guiaHTML(key) {
     sec('🙋', '¿Quién lo hace?', '<p>' + esc(g.quien) + '</p>') +
     sec('💸', '¿Cuesta algo o te descuentan algo?', '<p>' + esc(g.costo) + '</p>') +
     sec('🔁', '¿De dónde sale o a dónde llega la plata?', '<p>' + esc(g.plata) + '</p>') +
+    (g.secciones || []).map(function (s) { var tag = s.ol ? 'ol' : 'ul'; return sec('📌', esc(s.t), '<' + tag + ' class="g-ojo">' + s.items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</' + tag + '>'); }).join('') +
     ((g.ojo || []).length ? sec('⚠️', 'Ojo', '<ul class="g-ojo">' + g.ojo.map(function (o) { return '<li>' + esc(o) + '</li>'; }).join('') + '</ul>') : '') +
     '<button class="btn block" id="mclose" style="margin-top:.9rem">Entendido</button></div>';
 }
 function abrirGuia(key) { openModal(guiaHTML(key)); var b = document.querySelector('#modal .box'); if (b) b.scrollTop = 0; }
+
+/* ---------- Ruta: lo que pasa ESE día ---------- */
+function diaHTML(f, guia) {
+  var ins = (PLAN.ingresos || []).filter(function (i) { return i.fecha === f; });
+  var ts = allTasks().filter(function (t) { return t.fecha === f; }).sort(byFecha), titulo = 'Lo que haces el ' + fDateLong(f);
+  if (!ts.length) { var a = addDays(f, -7), b = addDays(f, 7); ts = allTasks().filter(function (t) { return t.fecha >= a && t.fecha <= b; }).sort(byFecha); titulo = 'Lo que haces esa semana (' + fDate(a) + ' a ' + fDate(b) + ')';
+    ins = (PLAN.ingresos || []).filter(function (i) { return i.fecha >= a && i.fecha <= b; }); }
+  var entra = ins.reduce(function (s, i) { return s + i.monto; }, 0), sale = ts.reduce(function (s, t) { return s + (t.monto || 0); }, 0);
+  var m = PLAN.meses.filter(function (x) { return x.id === f.slice(0, 7); })[0];
+  var h = '<div class="guia"><div class="g-tag">📅 Paso de tu ruta</div><h2>' + esc(titulo) + '</h2>';
+  if (ins.length) h += '<div class="g-sec"><div class="g-h">💰 Ese día te entra</div><ul class="g-ojo">' + ins.map(function (i) { return '<li>' + esc(i.concepto) + ': <b>' + money(i.monto) + '</b></li>'; }).join('') + '</ul><p><b>Total: ' + money(entra) + '</b></p></div>';
+  h += '<div class="g-sec"><div class="g-h">✅ Haces esto, en este orden</div>' + (ts.length ? '<ol class="g-pasos">' + ts.map(function (t) {
+      return '<li><b>' + esc(t.titulo) + '</b>' + (t.monto ? ' — <b>' + money(t.monto) + '</b>' : '') + ((t.desde || t.hacia) ? '<br><span class="small muted">' + (t.desde ? 'Desde ' + esc(t.desde) : '') + (t.hacia ? ' → a ' + esc(t.hacia) : '') + '</span>' : '') +
+        (t.guia ? '<br><button class="ac-guia" data-g2="' + t.guia + '" style="margin-top:.35rem">📘 Cómo se hace</button>' : '') + '</li>'; }).join('') + '</ol>' : '<p>Ese día no tienes pagos: es un hito del plan.</p>') +
+    (sale ? '<p><b>Total que pagas o mueves: ' + money(sale) + '</b></p>' : '') + '</div>';
+  if (m && m.saldosFin) h += '<div class="g-sec"><div class="g-h">📊 Así terminas ' + monthName(m.id).toLowerCase() + '</div><ul class="g-ojo">' + (PLAN.deudas || []).map(function (d) { return '<li>' + esc(d.corto || d.nombre) + ': ' + money(m.saldosFin[d.id] || 0) + '</li>'; }).join('') + '<li><b>Deuda total: ' + money(sum(m.saldosFin)) + '</b></li></ul></div>';
+  if (guia) h += '<button class="ac-guia" data-g2="' + guia + '">📖 Entender más sobre este paso</button>';
+  return h + '<button class="btn block" id="mclose" style="margin-top:.9rem">Entendido</button></div>';
+}
+function abrirDia(f, guia) {
+  openModal(diaHTML(f, guia)); var b = document.querySelector('#modal .box'); if (b) b.scrollTop = 0;
+  Array.prototype.forEach.call(document.querySelectorAll('#modal [data-g2]'), function (x) { x.onclick = function (e) { e.stopPropagation(); abrirGuia(x.dataset.g2); }; });
+}
 
 /* ---------- Ruta: la línea de tiempo completa ---------- */
 function primerCero(id) { var m = PLAN.meses.filter(function (x) { return (x.saldosFin || {})[id] != null && x.saldosFin[id] <= 0; })[0]; return m ? m.id : null; }
@@ -463,11 +488,11 @@ function vRuta() {
     return '<div style="margin:.6rem 0"><div class="row small"><span><b>' + esc(dd.corto || dd.nombre) + '</b> · ' + (dd.tasaEA ? String(dd.tasaEA).replace('.', ',') + ' % E.A.' : '') + '</span><span class="num">' + money(vh) + '</span></div>' +
       bar(p, 'ok') + '<div class="tiny muted">En $0: <b>' + (z ? monthName(z) : '—') + '</b></div></div>'; }).join('') + '</div>';
   var R = PLAN.ruta || [], idx = R.findIndex(function (x) { return x.fecha >= h; }); if (idx < 0) idx = R.length;
-  html += '<div class="card"><h2><span class="tt"><span class="ic">🧭</span>Tu ruta completa, paso a paso</span></h2><p class="tb-intro">Toca cualquier punto para ver cómo se hace: pasos, quién lo hace, si cuesta algo y a dónde llega la plata.</p><div class="tl">' + R.map(function (x, i) {
+  html += '<div class="card"><h2><span class="tt"><span class="ic">🧭</span>Tu ruta completa, paso a paso</span></h2><p class="tb-intro">Toca cualquier punto: verás SOLO lo de ese día (cuánto te entra, qué pagas y en qué orden, y cómo quedas). Desde ahí puedes abrir la guía paso a paso de cada acción.</p><div class="tl">' + R.map(function (x, i) {
     var cls = 'tl-i t-' + x.tipo + (i < idx ? ' past' : i === idx ? ' next' : '');
     var chips = (x.deuda != null ? '<span>💳 Deuda: ' + moneyK(x.deuda) + '</span>' : '') + (x.fna != null ? '<span>🏦 Cesantías: ' + moneyK(x.fna) + '</span>' : '');
-    return (i === idx ? '<div class="tl-here">📍 Estás aquí</div>' : '') + '<div class="' + cls + (x.guia ? ' tl-click' : '') + '"' + (x.guia ? ' data-guia="' + x.guia + '" role="button" tabindex="0"' : '') + '><div class="tl-dot">' + (i < idx ? '✓' : x.icono) + '</div><div class="tl-f">' + cap(fDate(x.fecha)) + ' ' + x.fecha.slice(0, 4) + (i === idx ? ' · PRÓXIMO' : '') + '</div>' +
-      '<div class="tl-t">' + esc(x.titulo) + '</div><div class="tl-d">' + esc(x.detalle) + '</div>' + (chips ? '<div class="tl-chips">' + chips + '</div>' : '') + (x.guia ? '<div class="tl-ver">Ver cómo se hace →</div>' : '') + '</div>'; }).join('') + '</div></div>';
+    return (i === idx ? '<div class="tl-here">📍 Estás aquí</div>' : '') + '<div class="' + cls + ' tl-click' + '" data-rdia="' + x.fecha + '" data-rg="' + (x.guia || '') + '" role="button" tabindex="0"><div class="tl-dot">' + (i < idx ? '✓' : x.icono) + '</div><div class="tl-f">' + cap(fDate(x.fecha)) + ' ' + x.fecha.slice(0, 4) + (i === idx ? ' · PRÓXIMO' : '') + '</div>' +
+      '<div class="tl-t">' + esc(x.titulo) + '</div><div class="tl-d">' + esc(x.detalle) + '</div>' + (chips ? '<div class="tl-chips">' + chips + '</div>' : '') + '<div class="tl-ver">Ver qué haces ese día →</div>' + '</div>'; }).join('') + '</div></div>';
   (PLAN.palancas || []).forEach(function (tb) { html += tablaHTML(tb); });
   if (PLAN.refi) html += tablaHTML(PLAN.refi);
   if (PLAN.tasas) html += tablaHTML(PLAN.tasas);
@@ -536,6 +561,7 @@ function vMas() {
   var a = PLAN.analisis || {}, o = PLAN.optimo, perm = ('Notification' in window) ? Notification.permission : 'no';
   var html = alarmCard(perm);
   html += planBCard();
+  html += '<div class="card"><h2><span class="tt"><span class="ic">📖</span>Palabras que vas a ver</span></h2><p class="small">Pago mínimo, pago total, abono a capital, reducción de plazo, tasa E.A., corte, 4x1000, CDT, AFC… explicadas en simple.</p><button class="ac-guia" data-guia="glosario">📖 Abrir el glosario</button></div>';
   if (o) html += '<section class="hero"><div class="stat">🧠 Análisis de escenarios</div><div class="big">' + esc(o.titulo) + '</div><div class="small" style="opacity:.92;margin-top:.3rem">' + esc(o.resumen) + '</div></section>' +
     tablaHTML({ titulo: 'Comparación con el mismo modelo', cols: o.tabla.cols, filas: o.tabla.filas }) +
     '<div class="card"><h2><span class="tt"><span class="ic">✅</span>Las razones</span></h2><ul class="list-plain">' + o.puntos.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></div>';

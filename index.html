@@ -14,7 +14,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Finanzas">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
   <header class="top" id="top" hidden>
@@ -25,7 +25,10 @@
         <div class="brand-sub" id="sub">—</div>
       </div>
     </div>
-    <button class="bell" id="bell" aria-label="Pendientes"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg><span class="count" id="bellCount" hidden>0</span></button>
+    <div class="top-act">
+      <button class="escbtn" id="escBtn" aria-label="Escenario del plan" hidden>A</button>
+      <button class="bell" id="bell" aria-label="Pendientes"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg><span class="count" id="bellCount" hidden>0</span></button>
+    </div>
   </header>
 
   <main id="view" tabindex="-1">
@@ -55,7 +58,7 @@
 
   <div class="modal" id="modal" hidden></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="qr.js?v=10"></script>
-  <script src="app.js?v=10"></script>
+  <script src="qr.js?v=11"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>

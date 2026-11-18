@@ -318,3 +318,38 @@ body::after { content: ''; position: fixed; left: 0; right: 0; bottom: 0; height
 .g-h { font-weight: 800; margin-bottom: .3rem; }
 .g-sec p { margin: 0; line-height: 1.5; font-size: .92rem; }
 .g-pasos, .g-ojo { margin: 0; padding-left: 1.2rem; } .g-pasos li, .g-ojo li { margin: .35rem 0; line-height: 1.45; font-size: .92rem; }
+
+/* ---------- 3.6: escenarios A/B/C, ruta mes → día, efectivo con dictado ---------- */
+.top-act { display: flex; align-items: center; gap: .5rem; }
+.escbtn { width: 42px; height: 42px; border-radius: 14px; border: 0; color: #fff; font-weight: 900; font-size: 1.15rem; cursor: pointer; box-shadow: var(--shadow); background: var(--brand); }
+.escbtn:focus-visible { outline: 3px solid color-mix(in srgb, var(--brand2) 60%, transparent); outline-offset: 2px; }
+.esc-opt { display: grid; grid-template-columns: auto 1fr; gap: .7rem; width: 100%; text-align: left; background: var(--card); color: var(--ink); border: 2px solid var(--line); border-radius: 16px; padding: .75rem; margin: .5rem 0 0; cursor: pointer; font: inherit; }
+.esc-opt.on { border-color: var(--ec); background: color-mix(in srgb, var(--ec) 9%, var(--card)); }
+.esc-l { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--ec); color: #fff; font-weight: 900; font-size: 1.2rem; }
+.esc-l.sm { width: 32px; height: 32px; font-size: 1rem; }
+.esc-t b { display: block; margin-bottom: .15rem; } .esc-t span { display: block; font-size: .84rem; color: var(--muted); }
+.esc-t .esc-r { color: var(--ink); margin-top: .3rem; font-weight: 600; }
+.alert.esc-ban { background: color-mix(in srgb, var(--ec) 11%, var(--card)); border-color: color-mix(in srgb, var(--ec) 45%, transparent); }
+.macc { border: 1px solid var(--line); border-radius: 14px; padding: 0; margin: .45rem 0; background: var(--card); }
+.macc:first-of-type { border-top: 1px solid var(--line); }
+.macc > summary { display: grid; grid-template-columns: 1fr auto; gap: .1rem .5rem; padding: .7rem 2rem .7rem .8rem; position: relative; }
+.macc > summary::after { position: absolute; right: .8rem; top: .75rem; }
+.macc.cur { border-color: var(--brand2); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand2) 20%, transparent); }
+.macc.past > summary .macc-n { color: var(--muted); }
+.macc-n { font-weight: 800; } .macc-e { font-size: .74rem; color: var(--muted); grid-column: 1; }
+.macc-v { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; align-items: flex-end; font-size: .74rem; font-weight: 800; gap: .05rem; }
+.macc-v .in, .mdia .in { color: var(--ok); } .macc-v .out, .mdia .out { color: var(--bad); } .macc-v .cnt2 { color: var(--muted); font-weight: 700; }
+.macc-b { padding: 0 .7rem .7rem; }
+.macc-f { margin: .5rem .1rem; }
+.disf { background: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); border-radius: 14px; padding: .6rem .75rem; margin: .2rem 0 .5rem; }
+.disf-h { font-weight: 700; font-size: .9rem; margin-bottom: .25rem; }
+.disf ul { list-style: none; margin: 0 0 .25rem; padding: 0; } .disf li { display: flex; justify-content: space-between; gap: .5rem; font-size: .84rem; padding: .15rem 0; }
+.mdia { display: grid; grid-template-columns: 1fr auto; gap: .15rem .5rem; width: 100%; text-align: left; font: inherit; color: var(--ink); background: var(--soft); border: 1px solid var(--line); border-radius: 12px; padding: .55rem .7rem; margin: .35rem 0 0; cursor: pointer; }
+.mdia-f { font-size: .88rem; } .mdia-m { display: flex; flex-direction: column; align-items: flex-end; font-size: .78rem; font-weight: 800; grid-row: 1 / span 2; grid-column: 2; }
+.mdia-t { font-size: .76rem; color: var(--muted); grid-column: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mdia.hoy { border-color: var(--brand2); background: var(--info-soft); } .mdia.late { border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+.mdia.ok .mdia-f { color: var(--ok); }
+.btn.dict { background: linear-gradient(135deg, #4f46e5, #0d9488); }
+.btn.dict.rec { background: var(--bad); animation: pulso 1.2s ease-in-out infinite; }
+@keyframes pulso { 50% { transform: scale(.98); opacity: .85; } }
+.g-ent { min-height: 1.2em; margin-top: .35rem; }
